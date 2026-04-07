@@ -1,0 +1,13 @@
+{
+  "name": "barista-dialogflowcx-chatwoot",
+  "version": "1.0.0",
+  "description": "Barista Coffee WhatsApp chatbot - Dialogflow CX + Chatwoot integration",
+  "engines": {
+    "node": "18.x"
+  },
+  "dependencies": {
+    "@google-cloud/dialogflow-cx": "^3.6.0",
+    "axios": "^1.6.0",
+    "uuid": "^9.0.0"
+  }
+}
