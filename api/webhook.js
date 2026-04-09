@@ -40,6 +40,7 @@ module.exports = async (req, res) => {
     const conversationId = event.conversation?.id || event.conversation;
     const contactId = event.sender?.id || event.sender;
     const inboxId = event.inbox?.id || event.inbox_id;
+    const phoneNumber = event.sender?.phone_number?.replace("+", "") || "";
 
     console.log("Extracted:", JSON.stringify({ userMessage, conversationId, contactId, inboxId }));
 
@@ -59,7 +60,7 @@ module.exports = async (req, res) => {
 
     // Send responses back through Chatwoot
     for (const payload of customPayloads) {
-      await sendInteractiveMessage(conversationId, payload);
+      await sendInteractiveMessage(conversationId, payload, phoneNumber);
     }
 
     // If no custom payload was sent, send text messages as fallback
