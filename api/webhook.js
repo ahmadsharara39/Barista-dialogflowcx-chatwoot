@@ -13,11 +13,22 @@ module.exports = async (req, res) => {
   try {
     const event = req.body;
 
+    console.log("Webhook received:", JSON.stringify({
+      event: event.event,
+      message_type: event.message_type,
+      content: event.content,
+      inbox_id: event.inbox_id,
+      conversation_id: event.conversation?.id,
+      sender_id: event.sender?.id,
+      keys: Object.keys(event),
+    }));
+
     // Only process incoming customer messages
     if (
       event.message_type !== "incoming" ||
       event.event !== "message_created"
     ) {
+      console.log("Skipped: not an incoming message_created event");
       return res.status(200).json({ ok: true });
     }
 
