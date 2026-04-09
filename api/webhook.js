@@ -37,19 +37,14 @@ module.exports = async (req, res) => {
       event.content ||
       event.content_attributes?.submitted_values?.[0]?.value ||
       "";
-    const conversationId = event.conversation?.id;
-    const contactId = event.sender?.id;
-    const inboxId = event.inbox_id;
+    const conversationId = event.conversation?.id || event.conversation;
+    const contactId = event.sender?.id || event.sender;
+    const inboxId = event.inbox?.id || event.inbox_id;
+
+    console.log("Extracted:", JSON.stringify({ userMessage, conversationId, contactId, inboxId }));
 
     if (!userMessage || !conversationId || !contactId) {
-      return res.status(200).json({ ok: true });
-    }
-
-    // Only respond to messages from the configured inbox
-    if (
-      process.env.CHATWOOT_INBOX_ID &&
-      String(inboxId) !== String(process.env.CHATWOOT_INBOX_ID)
-    ) {
+      console.log("Skipped: missing data", { userMessage: !!userMessage, conversationId: !!conversationId, contactId: !!contactId });
       return res.status(200).json({ ok: true });
     }
 
