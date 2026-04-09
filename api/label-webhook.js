@@ -1,0 +1,116 @@
+const axios = require("axios");
+
+// This webhook listens to Chatwoot account-level events
+// specifically for when the "human_agent" label is removed
+module.exports = async (req, res) => {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  try {
+    const event = req.body;
+
+    // Listen for conversation_updated events (label changes)
+    if (event.event !== "conversation_updated") {
+      return res.status(200).json({ ok: true });
+    }
+
+    const conversationId = event.id;
+    const currentLabels = event.labels || [];
+    const previousLabels = event.changed_attributes?.labels?.previous_value || [];
+
+    // Check if "human_agent" was removed
+    const wasHuman = previousLabels.includes("human_agent");
+    const isStillHuman = currentLabels.includes("human_agent");
+
+    if (wasHuman && !isStillHuman) {
+      console.log("Label removed: human_agent on conversation", conversationId);
+
+      // Get the contact's phone number from the conversation
+      const CHATWOOT_BASE = process.env.CHATWOOT_BASE_URL;
+      const ACCOUNT_ID = process.env.CHATWOOT_ACCOUNT_ID;
+      const USER_TOKEN = process.env.CHATWOOT_API_TOKEN;
+
+      const convResponse = await axios.get(
+        `${CHATWOOT_BASE}/api/v1/accounts/${ACCOUNT_ID}/conversations/${conversationId}`,
+        { headers: { api_access_token: USER_TOKEN } }
+      );
+
+      const phoneNumber = convResponse.data?.meta?.sender?.phone_number?.replace("+", "") || "";
+
+      if (!phoneNumber) {
+        console.log("No phone number found for conversation", conversationId);
+        return res.status(200).json({ ok: true });
+      }
+
+      // Send welcome back message via WhatsApp
+      const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
+      const WA_TOKEN = process.env.WHATSAPP_API_TOKEN;
+
+      // Send text message
+      await axios.post(
+        `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`,
+        {
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: phoneNumber,
+          type: "text",
+          text: {
+            body: "You are now reconnected to the Barista Bot ☕🤖\nHow can we help you today?",
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${WA_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Send the main menu buttons
+      await axios.post(
+        `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`,
+        {
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: phoneNumber,
+          type: "interactive",
+          interactive: {
+            type: "list",
+            header: { type: "text", text: "Hello from Barista Team ☕💫" },
+            body: { text: "How can we help you today?" },
+            footer: { text: "Tap to select an option" },
+            action: {
+              button: "View Options",
+              sections: [
+                {
+                  title: "Main Menu",
+                  rows: [
+                    { id: "order", title: "🛒 Order", description: "" },
+                    { id: "check_products", title: "📦 Check Products", description: "" },
+                    { id: "maintenance", title: "🛠 Maintenance", description: "" },
+                    { id: "feedback", title: "💬 Feedback", description: "" },
+                    { id: "talk_agent", title: "👩‍💼 Talk to an Agent", description: "" },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${WA_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("Sent welcome back message to", phoneNumber);
+    }
+
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("Label webhook error:", err.message, err.response?.data ? JSON.stringify(err.response.data) : "");
+    return res.status(500).json({ error: err.message });
+  }
+};
