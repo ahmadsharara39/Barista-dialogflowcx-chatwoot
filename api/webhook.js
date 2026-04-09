@@ -3,6 +3,7 @@ const {
   sendMessage,
   sendInteractiveMessage,
   handoffToHuman,
+  isHandledByHuman,
 } = require("../lib/chatwoot");
 
 module.exports = async (req, res) => {
@@ -47,6 +48,13 @@ module.exports = async (req, res) => {
 
     if (!userMessage || !conversationId || !contactId) {
       console.log("Skipped: missing data", { userMessage: !!userMessage, conversationId: !!conversationId, contactId: !!contactId });
+      return res.status(200).json({ ok: true });
+    }
+
+    // Skip if conversation is handled by a human agent
+    const humanHandled = await isHandledByHuman(conversationId);
+    if (humanHandled) {
+      console.log("Skipped: conversation handled by human agent");
       return res.status(200).json({ ok: true });
     }
 
