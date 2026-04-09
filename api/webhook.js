@@ -72,7 +72,7 @@ module.exports = async (req, res) => {
       for (const text of textMessages) {
         if (text.trim()) {
           console.log("Sending text message:", text.substring(0, 50));
-          await sendMessage(conversationId, text);
+          await sendMessage(conversationId, text, phoneNumber);
         }
       }
     }
