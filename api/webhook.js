@@ -92,7 +92,7 @@ module.exports = async (req, res) => {
 
     return res.status(200).json({ ok: true });
   } catch (err) {
-    console.error("Webhook error:", err.message);
+    console.error("Webhook error:", err.message, err.response?.data ? JSON.stringify(err.response.data) : "");
     return res.status(500).json({ error: err.message });
   }
 };
