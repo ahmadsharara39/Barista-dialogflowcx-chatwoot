@@ -42,7 +42,8 @@ module.exports = async (req, res) => {
     const inboxId = event.inbox?.id || event.inbox_id;
     const phoneNumber = event.sender?.phone_number?.replace("+", "") || "";
 
-    console.log("Extracted:", JSON.stringify({ userMessage, conversationId, contactId, inboxId }));
+    console.log("Extracted:", JSON.stringify({ userMessage, conversationId, contactId, inboxId, phoneNumber }));
+    console.log("Sender object:", JSON.stringify(event.sender));
 
     if (!userMessage || !conversationId || !contactId) {
       console.log("Skipped: missing data", { userMessage: !!userMessage, conversationId: !!conversationId, contactId: !!contactId });
@@ -53,13 +54,16 @@ module.exports = async (req, res) => {
     const sessionId = `contact-${contactId}`;
 
     // Send user message to Dialogflow CX
+    console.log("Sending to Dialogflow...");
     const { textMessages, customPayloads, handoff } = await detectIntent(
       sessionId,
       userMessage
     );
+    console.log("Dialogflow response:", JSON.stringify({ textMessages, customPayloadCount: customPayloads.length, handoff }));
 
     // Send responses back through Chatwoot
     for (const payload of customPayloads) {
+      console.log("Sending interactive message...");
       await sendInteractiveMessage(conversationId, payload, phoneNumber);
     }
 
@@ -67,6 +71,7 @@ module.exports = async (req, res) => {
     if (customPayloads.length === 0) {
       for (const text of textMessages) {
         if (text.trim()) {
+          console.log("Sending text message:", text.substring(0, 50));
           await sendMessage(conversationId, text);
         }
       }
