@@ -10,6 +10,14 @@ module.exports = async (req, res) => {
   try {
     const event = req.body;
 
+    console.log("Label webhook event:", JSON.stringify({
+      event: event.event,
+      id: event.id,
+      labels: event.labels,
+      changed_attributes: event.changed_attributes,
+      keys: Object.keys(event),
+    }));
+
     // Listen for conversation_updated events (label changes)
     if (event.event !== "conversation_updated") {
       return res.status(200).json({ ok: true });
@@ -18,6 +26,8 @@ module.exports = async (req, res) => {
     const conversationId = event.id;
     const currentLabels = event.labels || [];
     const previousLabels = event.changed_attributes?.labels?.previous_value || [];
+
+    console.log("Label check:", JSON.stringify({ currentLabels, previousLabels }));
 
     // Check if "human_agent" was removed
     const wasHuman = previousLabels.includes("human_agent");
